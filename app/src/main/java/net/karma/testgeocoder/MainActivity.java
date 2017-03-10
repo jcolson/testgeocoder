@@ -60,18 +60,13 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                 host.doLocation();
             }
         });
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-
-        Criteria criteria = new Criteria();
-        provider = locationManager.getBestProvider(criteria, false);
-
         doLocation();
 
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     private void doLocation() {
-        Log.d(TAG, "before location");
+        Log.d(TAG, "doLocation called");
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "doesn't have permission");
             // TODO: Consider calling
@@ -84,13 +79,18 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             this.requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_ACCESS_FINE_LOCATION);
             return;
         }
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+        Criteria criteria = new Criteria();
+        provider = locationManager.getBestProvider(criteria, false);
+
         Location location = locationManager.getLastKnownLocation(provider);
 
         if (location != null) {
             Log.d(TAG, "Provider " + provider + " has been selected.");
             onLocationChanged(location);
         } else {
-            Log.d(TAG, "Location: " + location.getLatitude() + " " + location.getLongitude());
+            Log.d(TAG, "Location is null");
             latituteField.setText("Location not available");
             longitudeField.setText("Location not available");
         }
@@ -107,12 +107,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    Log.d(TAG,"Got the fine location permission");
+                    Log.d(TAG, "Got the fine location permission");
 //                    doLocation();
 
                 } else {
 
-                    Log.d(TAG,"Didn't get the location permission");
+                    Log.d(TAG, "Didn't get the location permission");
                 }
                 return;
             }
@@ -144,9 +144,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         return super.onOptionsItemSelected(item);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     protected void onResume() {
         super.onResume();
+        doLocation();
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -157,14 +159,18 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        locationManager.requestLocationUpdates(provider, 400, 1, this);
+        if (locationManager != null && provider != null) {
+            locationManager.requestLocationUpdates(provider, 400, 1, this);
+        }
     }
 
 
     @Override
     protected void onPause() {
         super.onPause();
-        locationManager.removeUpdates(this);
+        if (locationManager != null) {
+            locationManager.removeUpdates(this);
+        }
     }
 
     @Override
@@ -176,11 +182,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         StringBuilder builder = new StringBuilder();
         try {
             List<Address> address = geoCoder.getFromLocation(lat, lng, 1);
-            int maxLines = address.get(0).getMaxAddressLineIndex();
-            for (int i = 0; i < maxLines; i++) {
-                String addressStr = address.get(0).getAddressLine(i);
-                builder.append(addressStr);
-                builder.append(" ");
+            if (address.size() > 0) {
+                int maxLines = address.get(0).getMaxAddressLineIndex();
+                for (int i = 0; i < maxLines; i++) {
+                    String addressStr = address.get(0).getAddressLine(i);
+                    builder.append(addressStr);
+                    builder.append(" ");
+                }
+            } else {
+                builder.append("NO ADDRESS FOUND");
             }
 
             String finalAddress = builder.toString(); //This is the complete address.
@@ -190,9 +200,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             addressField.setText(finalAddress); //This will display the final address.
 
         } catch (IOException e) {
-            Log.e(TAG,"Location exception",e);
+            Log.e(TAG, "Location exception", e);
         } catch (NullPointerException e) {
-            Log.e(TAG,"NPE??",e);
+            Log.e(TAG, "NPE??", e);
         }
     }
 
