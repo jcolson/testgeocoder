@@ -201,8 +201,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         } catch (IOException e) {
             Log.e(TAG, "Location exception", e);
+            addressField.setText("Location exception: "+e.getMessage());
         } catch (NullPointerException e) {
-            Log.e(TAG, "NPE??", e);
+            Log.e(TAG, "NPE", e);
+            addressField.setText("NPE Location exception: "+e.getMessage());
         }
     }
 
